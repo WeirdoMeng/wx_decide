@@ -1,0 +1,5 @@
+{
+  "member_users": { "read": false, "write": false },
+  "member_orders": { "read": false, "write": false },
+  "member_grants": { "read": false, "write": false }
+}

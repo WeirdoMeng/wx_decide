@@ -1,0 +1,88 @@
+const crypto = require('node:crypto');
+const hash = value => crypto.createHash('sha256').update(String(value)).digest('hex');
+const hmac = (key,body) => crypto.createHmac('sha256',key).update(body,'utf8').digest('hex');
+function paySig(uri,body,key){return hmac(key,uri+'&'+body);}
+function orderNumber(env=0){return (env===1?'S':'T')+Date.now().toString(36)+crypto.randomBytes(8).toString('hex');}
+function error(code,message){return Object.assign(new Error(message),{code,clientSafe:true});}
+function paymentData(config,order,sessionKey){
+  if(!config.appKey||!config.offerId||!config.productId)throw error('PAYMENT_NOT_CONFIGURED','支付商品尚未配置');
+  const signData=JSON.stringify({offerId:config.offerId,buyQuantity:1,env:config.payEnv===1?1:0,currencyType:'CNY',productId:order.productId,goodsPrice:990,outTradeNo:order.id,attach:order.attach});
+  return {signData,mode:'short_series_goods',paySig:paySig('requestVirtualPayment',signData,config.appKey),signature:hmac(sessionKey,signData)};
+}
+// 使用 Node 内置 HTTPS，避免默认云运行时缺少全局 fetch 导致模块加载即失败。
+function httpsRequest(url,options={}){
+  return new Promise((resolve,reject)=>{
+    const headers={...options.headers};
+    // 微信网关拒绝默认的 chunked POST（实测返回 HTTP 412 空响应）。
+    // 对签名使用的原始字符串按 UTF-8 字节计数，不能用字符串 length。
+    if(options.body!==undefined)headers['Content-Length']=Buffer.byteLength(options.body,'utf8');
+    const req=require('https').request(url,{method:options.method||'GET',headers},res=>{
+      const chunks=[];res.on('data',chunk=>chunks.push(chunk));res.on('error',reject);
+      res.on('end',()=>resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode,json:async()=>JSON.parse(Buffer.concat(chunks).toString('utf8'))}));
+    });
+    req.setTimeout(12000,()=>req.destroy(Object.assign(Error('timeout'),{code:'ETIMEDOUT'})));req.on('error',reject);
+    if(options.body)req.write(options.body);req.end();
+  });
+}
+function createProvider(config,request=httpsRequest){
+  let cachedToken='',tokenUntil=0;
+  function diagnostic(message,url,options){
+    // 保留参数名/失败原因；隐藏凭证、用户身份、订单值、URL 和长标识。
+    let text=String(message||'');
+    const hidden=[config.appKey,config.appSecret,cachedToken];
+    try{for(const value of new URL(url).searchParams.values())hidden.push(value);}catch(_){}
+    try{for(const value of Object.values(JSON.parse(options.body||'{}')))if(typeof value==='string')hidden.push(value);}catch(_){}
+    for(const value of hidden.filter(value=>typeof value==='string'&&value.length))text=text.split(value).join('[hidden]');
+    return text.replace(/https?:\/\/[^\s]+/gi,'[url]').replace(/[A-Za-z0-9_-]{20,}/g,'[id]').replace(/[\r\n\x00-\x1f]+/g,' ').slice(0,300);
+  }
+  async function json(url,options={},stage='接口请求'){
+    let response,result;
+    try{response=await request(url,options);}
+    catch(err){
+      const reason=String(err&&err.code||'UNAVAILABLE');
+      const code=/^[A-Z0-9_]{1,40}$/.test(reason)?reason:'UNAVAILABLE';
+      throw error('WECHAT_NETWORK_'+code,'微信'+stage+'连接失败，请稍后恢复购买查询');
+    }
+    if(!response.ok){
+      const status=Number.isInteger(response.status)?response.status:0;
+      throw error('WECHAT_HTTP_'+status,'微信'+stage+'失败（HTTP '+status+'）');
+    }
+    try{result=await response.json();}
+    catch(_){throw error('WECHAT_INVALID_RESPONSE','微信'+stage+'返回异常，请稍后恢复购买查询');}
+    if(!result||typeof result!=='object'||Array.isArray(result))throw error('WECHAT_INVALID_RESPONSE','微信'+stage+'返回异常');
+    if(result.errcode){
+      const hint=diagnostic(result.errmsg,url,options);
+      const failure=error('WECHAT_'+Number(result.errcode),'微信'+stage+'失败（微信错误 '+Number(result.errcode)+'）'+(hint?'：'+hint:''));
+      failure.diagnostic={stage,hint};throw failure;
+    }
+    return result;
+  }
+  async function exchange(code){
+    if(!config.appSecret)throw error('LOGIN_NOT_CONFIGURED','登录服务尚未配置');
+    if(typeof code!=='string'||!code||code.length>256)throw error('INVALID_CODE','登录凭证无效');
+    const query=new URLSearchParams({appid:config.appId,secret:config.appSecret,js_code:code,grant_type:'authorization_code'});
+    const result=await json('https://api.weixin.qq.com/sns/jscode2session?'+query,{},'登录校验');
+    if(!result.openid||!result.session_key)throw error('INVALID_SESSION','微信登录状态无效');
+    return result;
+  }
+  async function token(){
+    if(cachedToken&&Date.now()<tokenUntil)return cachedToken;
+    const result=await json('https://api.weixin.qq.com/cgi-bin/stable_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'client_credential',appid:config.appId,secret:config.appSecret})},'支付凭证获取');
+    if(!result.access_token)throw error('INVALID_TOKEN','微信服务凭证不可用');
+    cachedToken=result.access_token;tokenUntil=Date.now()+Math.max(0,(Number(result.expires_in)-120))*1000;return cachedToken;
+  }
+  async function call(uri,payload,signed=true){
+    const body=JSON.stringify(payload),accessToken=await token();
+    const query=new URLSearchParams({access_token:accessToken});if(signed)query.set('pay_sig',paySig(uri,body,config.appKey));
+    try{return await json('https://api.weixin.qq.com'+uri+'?'+query,{method:'POST',headers:{'Content-Type':'application/json'},body},uri==='/xpay/query_order'?'订单查询':'发货确认');}
+    catch(err){if(['WECHAT_40001','WECHAT_42001'].includes(err.code)){cachedToken='';tokenUntil=0;}throw err;}
+  }
+  return {
+    exchange,
+    query:order=>call('/xpay/query_order',{openid:order.openid,env:config.payEnv===1?1:0,order_id:order.id}),
+    // 该接口只接收二选一单号，不接收env。平台单号来自服务端真实查单，
+    // 优先使用它，避免沙盒与现网商户订单号定位不明确。
+    provide:order=>call('/xpay/notify_provide_goods',order.wxOrderId?{wx_order_id:order.wxOrderId}:{order_id:order.id},false)
+  };
+}
+module.exports={hash,hmac,paySig,orderNumber,error,paymentData,createProvider};

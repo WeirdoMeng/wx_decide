@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "backgroundColor": "#f4f8ff",
+  "usingComponents": {
+    "art-button": "/components/art-button/index",
+    "result-dialog": "/components/result-dialog/index",
+    "original-nav": "/components/original-nav/index"
+  }
+}

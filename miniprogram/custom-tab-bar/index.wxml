@@ -1,0 +1,1 @@
+<view wx:if="{{!hidden}}" class="tabs"><view wx:for="{{tabs}}" wx:key="path" class="tab {{selected === index ? 'active' : ''}}" data-index="{{index}}" bindtap="switchTab"><image class="icon" src="{{selected === index ? item.activeIcon : item.icon}}"/><text>{{item.text}}</text></view></view>

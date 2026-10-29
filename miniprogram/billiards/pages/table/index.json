@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "pageOrientation": "landscape",
+  "disableScroll": true,
+  "renderer": "webview",
+  "backgroundColor": "#071813",
+  "usingComponents": {}
+}

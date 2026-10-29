@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/index/index",
+    "pages/party/index",
+    "pages/lists/index",
+    "pages/list-edit/index",
+    "pages/coin/index",
+    "pages/number/index",
+    "pages/touch/index",
+    "pages/game/index",
+    "pages/mine/index"
+  ],
+  "subPackages": [
+    {
+      "root": "billiards",
+      "pages": [
+        "pages/table/index"
+      ]
+    }
+  ],
+  "window": {
+    "backgroundColor": "#F4F8FF",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#F4F8FF",
+    "navigationBarTitleText": "小决定",
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#7580A0",
+    "selectedColor": "#6574FF",
+    "backgroundColor": "#FFFFFF",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "转盘"
+      },
+      {
+        "pagePath": "pages/party/index",
+        "text": "聚会"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

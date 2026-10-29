@@ -1,0 +1,7 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "result-dialog": "/components/result-dialog/index",
+    "original-nav": "/components/original-nav/index"
+  }
+}

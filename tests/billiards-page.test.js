@@ -1,0 +1,97 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const core=require('../miniprogram/billiards/core');
+let globalSound=false,rendererFailure=false,failedSession,deferredAssets=false,assetRequests=[];
+const storage={getSettings:()=>({sound:globalSound,vibration:true})};
+let adRounds=0,adRequests=0,holdAd=false,adClose;
+let definition,frames=new Map(),next=1,destroyed=0,audioDisposed=0;
+class Renderer{constructor(canvas,options){if(rendererFailure){failedSession=options.session;options.onStage('babylon-engine');throw new TypeError('native Canvas addEventListener unavailable');}this.session=options.session;}render(dt,t){this.session.update(dt,t);}dispose(){destroyed++;}resize(){}placementPreview(point){this.preview=point;}orbit(dx,dy){this.orbitDelta=[dx,dy];}setHudSound(){}setHudMenu(menu){this.menu=menu;}resetView(){this.topView=false;}hudPointer(){return false;}groundPoint(){return{x:-1.1,z:.1};}setView(){}}
+class Audio{play(){}setPaused(value){this.paused=value;}setEnabled(){}dispose(){audioDisposed++;}}
+const canvas={requestAnimationFrame(fn){const id=next++;frames.set(id,fn);return id;},cancelAnimationFrame(id){frames.delete(id);}};
+const wx={createOffscreenCanvas(){return{getContext:()=>({clearRect(){},getImageData:()=>({data:new Uint8ClampedArray(4)})})};},createSelectorQuery(){return{in(){return this;},select(){return this;},fields(){return this;},boundingClientRect(fn){this.rectCallback=fn;return this;},exec(fn){if(fn)fn([{node:canvas,width:844,height:390,left:0,top:0}]);else if(this.rectCallback)this.rectCallback({left:100,width:114,top:0,height:26});}};},getWindowInfo(){return{pixelRatio:2};},showModal(options){options.success?.({confirm:true});},showToast(){},showActionSheet(){},navigateBack(){},switchTab(){}};
+vm.runInNewContext(fs.readFileSync(require.resolve('../miniprogram/billiards/pages/table/index.js'),'utf8'),{Page(value){definition=value;},wx,require(id){if(id==='../../../utils/ads')return{shouldOffer(){return true;},recordRound(){adRounds++;},controller(){return{play(done){adRequests++;if(holdAd)adClose=done;else done();},cancel(){},dispose(){}};}};if(id==='../../../utils/storage')return storage;if(id==='../../scene-assets')return{loadSceneAssets(canvas,api,callbacks){const request={callbacks,cancelled:false,cancel(){this.cancelled=true;}};assetRequests.push(request);if(!deferredAssets)callbacks.onSuccess({});return request;}};if(id==='../../diagnostics')return require('../miniprogram/billiards/diagnostics');if(id==='../../core')return core;if(id==='../../renderer')return{BilliardsRenderer:Renderer};if(id==='../../audio')return{BilliardsAudio:Audio};throw Error(id);},console,Date});
+const page={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};
+const tick=time=>{const callbacks=[...frames.values()];frames.clear();callbacks.forEach(fn=>fn(time));};
+page.onLoad({mode:'snooker'});assert.equal(page.data.sound,false);page.toggleSound();assert.equal(page.data.sound,false);globalSound=true;page.toggleSound();assert.equal(page.data.sound,true);page.onShow();page.onReady();assert.equal(page.data.ready,true);assert.equal(page._session.mode,'snooker');assert.equal(frames.size,1);
+tick(100);page.shoot();tick(250);assert.equal(page._session.stroke.isActive,true);page.onHide();assert.equal(frames.size,0);assert.equal(page.data.paused,true);assert.equal(page._session.stroke.isActive,false);assert.equal(page._audio.paused,true);
+page.onShow();assert.equal(frames.size,1);assert.equal(page.data.paused,true);tick(1000);assert.equal(page._session.physics.isMoving(),false);page.resume();assert.equal(page.data.paused,false);assert.equal(page._audio.paused,false);
+page.shoot();for(const time of [1500,1600,1800,1900])tick(time);assert.equal(page._session.physics.isMoving(),true);const before={...page._session.physics.cueBall.position};page.onHide();page._session.update(3,10000);assert.deepEqual(page._session.physics.cueBall.position,before);page.onShow();assert.equal(page.data.paused,true);page.resume();tick(11000);tick(11030);assert.ok(page._session.physics.cueBall.position.x!==before.x);
+page.restart();assert.equal(page._session.snapshot().activePlayer,0);assert.equal(page._session.physics.isMoving(),false);
+page.onUnload();assert.equal(frames.size,0);assert.equal(page._session.disposed,true);assert.equal(destroyed,1);assert.equal(audioDisposed,1);assert.equal(page._renderer,null);
+console.log('Billiards page lifecycle passed: ready, pending stroke cancellation, hide freeze, explicit resume, restart, unload cleanup.');
+// The per-page switch must never bypass the global sound preference.
+let created=0,played=0,destroyedVoices=0;const audioModule={exports:{}};
+vm.runInNewContext(fs.readFileSync(require.resolve('../miniprogram/billiards/audio.js'),'utf8'),{module:audioModule,exports:audioModule.exports,require(id){assert.equal(id,'../utils/storage');return storage;},wx:{createInnerAudioContext(){created++;return{onError(){},stop(){},play(){played++;},destroy(){destroyedVoices++;}};}},Date});
+const sound=new audioModule.exports.BilliardsAudio();globalSound=false;sound.setEnabled(true);sound.play('cue',1);assert.equal(created,0);globalSound=true;sound.play('cue',1);assert.equal(played,1);sound.setPaused(true);sound.play('pocket',1);assert.equal(played,1);sound.setPaused(false);sound.setEnabled(false);sound.play('pocket',1);assert.equal(played,1);sound.dispose();assert.equal(destroyedVoices,created);
+console.log('Billiards audio respects global sound=false, local mute, pause, and voice disposal.');
+
+// Native WebGL hides ordinary controls on affected clients: all HUD descendants must remain covers.
+const markup=fs.readFileSync(require.resolve('../miniprogram/billiards/pages/table/index.wxml'),'utf8');
+assert.equal((markup.match(/<view\b/g)||[]).length,1,'only the page root may be an ordinary view');
+assert.equal((markup.match(/<\/view>/g)||[]).length,1);
+assert.equal((markup.match(/<canvas\b/g)||[]).length,1);
+assert.equal(/<(?:text|button|slider)\b/.test(markup),false,'HUD must not regress to ordinary native-covered controls');
+const tags=[...markup.matchAll(/<\/?([a-zA-Z-]+)/g)].map(match=>match[1]);
+assert.ok(tags.every(tag=>['view','canvas','cover-view','cover-image','block'].includes(tag)),tags.join(','));
+const controls={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};
+controls.onLoad({mode:'eight'});controls.onReady();
+const start=(axis,x)=>controls.controlTouchStart({currentTarget:{dataset:{axis}},touches:[{clientX:x}]});
+const move=x=>controls.controlTouchMove({touches:[{clientX:x}]});
+const end=x=>controls.controlTouchEnd({touches:[],changedTouches:[{clientX:x}]});
+start('power',-100);assert.equal(controls._session.power,.08);move(10000);assert.equal(controls._session.power,1);end(157);assert.equal(controls._session.power,.54);
+start('x',-100);assert.equal(controls._session.sideSpin,-1);move(157);assert.equal(controls._session.sideSpin,0);end(10000);assert.equal(controls._session.sideSpin,1);assert.equal(controls.data.spinX,100);
+start('y',10000);assert.equal(controls._session.followSpin,1);end(-100);assert.equal(controls._session.followSpin,-1);assert.equal(controls.data.spinY,-100);
+start('power',207);controls.controlTouchCancel();move(107);assert.equal(controls._session.power,1);
+controls.pause();start('power',107);assert.equal(controls._session.power,1,'paused state must reject native slider gestures');controls.resume();controls.shoot();start('x',107);assert.equal(controls._session.sideSpin,1,'pending stroke must reject spin changes');
+controls.onUnload();assert.equal(frames.size,0);
+console.log('Native cover HUD regression passed: root/canvas exception only, no ordinary controls; touch ranges clamp power 8–100% and spin -100–100%, cancel/pause/stroke lock hold.');
+// The canvas texture HUD owns touch gestures; no hidden native overlay may double-dispatch them.
+const texturePage={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};texturePage.onLoad({mode:'eight'});texturePage.onReady();assert.equal(texturePage.data.canvasHud,true);
+let forwarded=[];texturePage._renderer.hudPointer=(type,x,y)=>{forwarded.push([type,x,y]);if(type==='up')texturePage.handleHudAction({action:'shoot'});return true;};
+const touch=(x,y,end=false)=>({touches:end?[]:[{x,y}],changedTouches:end?[{x,y}]:[]});texturePage.touchStart(touch(760,180));assert.equal(texturePage._drag,null);texturePage.touchMove(touch(765,185));texturePage.touchEnd(touch(765,185,true));assert.deepEqual(forwarded.map(x=>x[0]),['down','move','up']);assert.equal(texturePage._session.stroke.isActive,true);assert.equal(texturePage._hudCapture,false);
+texturePage._session.restart();texturePage.handleHudAction({action:'power',value:0});assert.equal(texturePage._session.power,.08);texturePage.handleHudAction({action:'power',value:1});assert.equal(texturePage._session.power,1);texturePage.handleHudAction({action:'spin-x',value:1});assert.equal(texturePage._session.sideSpin,1);texturePage.handleHudAction({action:'spin-y',value:0});assert.equal(texturePage._session.followSpin,-1);texturePage.handleHudAction({action:'pause'});assert.equal(texturePage._session.paused,true);texturePage.handleHudAction({action:'resume'});assert.equal(texturePage._session.paused,false);texturePage.onUnload();
+console.log('Page Canvas HUD forwarding passed: exclusive gesture capture, real shot, full ranges, pause/resume; hidden covers do not participate.');
+
+// A phone-only failure must retain its exact stage/reason and offer local copy, without retry loops.
+let failureModal,clipboard,storedDiagnostic;wx.showModal=options=>{failureModal=options;};wx.setClipboardData=options=>{clipboard=options.data;options.success?.();};wx.setStorageSync=(key,value)=>{storedDiagnostic=JSON.parse(JSON.stringify(value));};
+rendererFailure=true;const failed={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};failed.onLoad({mode:'snooker'});failed.onReady();assert.equal(failed.data.ready,false);assert.equal(failed._renderer,null);assert.equal(failedSession.disposed,true);assert.equal(failed._session,null);assert.equal(failed._audio,null);assert.equal(failed._canvas,null);assert.equal(failed._rect,null);assert.equal(failureModal.confirmText,'复制诊断');assert.match(failureModal.content,/babylon-engine/);assert.match(failureModal.content,/addEventListener/);assert.doesNotMatch(failureModal.content,/更新微信/);failureModal.success({confirm:true});assert.equal(JSON.parse(clipboard).stage,'babylon-engine');assert.equal(JSON.parse(clipboard).error.name,'TypeError');assert.equal(storedDiagnostic.mode,'snooker');
+assert.doesNotThrow(()=>failed.touchStart(touch(100,100)),'dismissing diagnostics must not leave a crashing Canvas');failed._hudCapture=true;failed._drag={x:100,y:100};assert.doesNotThrow(()=>failed.touchMove(touch(101,101)));assert.doesNotThrow(()=>failed.touchEnd(touch(101,101,true)));assert.equal(failed._hudCapture,false);assert.equal(failed._drag,null);assert.equal(frames.size,0);failed.onUnload();rendererFailure=false;
+console.log('Phone failure diagnosis passed: exact failed stage/error visible, one-tap local copy, session cleanup, no generic update-WeChat loop.');
+
+// A resize query may finish after retry has disposed or replaced its renderer.
+const resizePage={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};resizePage.onLoad({mode:'eight'});resizePage.onReady();
+const originalSelectorQuery=wx.createSelectorQuery,pendingResizes=[];let oldResizeCalls=0,newResizeCalls=0;const oldRenderer=resizePage._renderer;oldRenderer.resize=()=>{oldResizeCalls++;};
+wx.createSelectorQuery=()=>({in(){return this;},select(){return this;},fields(){return this;},exec(callback){pendingResizes.push(callback);}});
+resizePage.onResize();resizePage.onResize();assert.equal(pendingResizes.length,2);resizePage._renderer=null;assert.doesNotThrow(()=>pendingResizes[0]([{width:667,height:375,left:0,top:0}]));assert.equal(oldResizeCalls,0);
+resizePage._renderer=oldRenderer;wx.createSelectorQuery=originalSelectorQuery;resizePage.retry();assert.notEqual(resizePage._renderer,oldRenderer);resizePage._renderer.resize=()=>{newResizeCalls++;};const currentRect=resizePage._rect;assert.doesNotThrow(()=>pendingResizes[1]([{width:667,height:375,left:50,top:20}]));assert.equal(newResizeCalls,0,'stale query must not resize the new renderer');assert.equal(resizePage._rect,currentRect,'stale query must not replace the new touch geometry');
+resizePage.onResize();assert.equal(newResizeCalls,1,'a current query still resizes normally');resizePage.onUnload();assert.equal(frames.size,0);
+console.log('Failed Canvas touch and delayed resize regression passed: released references, safe stale gestures, disposed/replaced renderer queries ignored, current resize retained.');
+
+// Original Web interaction: rear-cue aiming, orbit-mode dragging, preview then release placement.
+const originalPage={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};originalPage.onLoad({mode:'eight'});originalPage.onReady();
+originalPage._renderer.groundPoint=(x,y)=>({x,z:y});const cue=originalPage._session.physics.cueBall.position,initialAngle=originalPage._session.angle;
+originalPage.touchStart(touch(cue.x+.5,cue.z));originalPage.touchEnd(touch(cue.x+.5,cue.z,true));assert.equal(originalPage._session.angle,initialAngle,'front-table taps must not redirect the cue');
+originalPage.touchStart(touch(cue.x-.5,cue.z));assert.ok(originalPage._drag.rear);originalPage.touchMove(touch(cue.x-.5,cue.z+.1));assert.notEqual(originalPage._session.angle,initialAngle);const aimed=originalPage._session.angle;originalPage.touchEnd(touch(cue.x-.5,cue.z+.1,true));assert.equal(originalPage._session.angle,aimed);
+originalPage.toggleView();assert.equal(originalPage.data.top,true);assert.equal(originalPage.data.canShoot,false);originalPage.shoot();assert.equal(originalPage._session.stroke.isActive,false);originalPage.touchStart(touch(200,150));originalPage.touchMove(touch(240,170));assert.deepEqual(originalPage._renderer.orbitDelta,[40,20]);originalPage.touchEnd(touch(240,170,true));originalPage.toggleView();assert.equal(originalPage.data.top,false);
+originalPage._session.ballInHand=true;originalPage._session.physics.cueBall.pocketed=true;originalPage.touchStart(touch(-1,.4));assert.equal(originalPage._session.ballInHand,true);assert.equal(originalPage._renderer.preview.x,-1);originalPage.touchMove(touch(-1.3,.4));assert.equal(originalPage._session.physics.cueBall.pocketed,true,'dragging only previews');originalPage.touchEnd(touch(-1.3,.4,true));assert.equal(originalPage._session.ballInHand,false);assert.equal(originalPage._session.physics.cueBall.position.x,-1.3);assert.equal(originalPage._renderer.preview,undefined);originalPage.onUnload();
+console.log('Original interaction passed: front taps ignored, rear aiming retained, free orbit blocks shot, placement previews until release.');
+
+// Slow local texture decode cannot create a renderer after exit or complete an obsolete retry.
+deferredAssets=true;const early={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};early.onLoad({});early.onReady();const abandoned=assetRequests.at(-1);assert.equal(early._loading,true);early.onUnload();assert.equal(abandoned.cancelled,true);abandoned.callbacks.onSuccess({});assert.equal(early.data.ready,false);assert.ok(!early._renderer);
+const retried={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};retried.onLoad({});retried.onReady();const obsolete=assetRequests.at(-1);retried.retry();const replacement=assetRequests.at(-1);assert.equal(obsolete.cancelled,true);obsolete.callbacks.onSuccess({});assert.equal(retried.data.ready,false);replacement.callbacks.onSuccess({});assert.equal(retried.data.ready,true);assert.ok(retried._renderer);retried.onUnload();deferredAssets=false;assert.equal(frames.size,0);
+console.log('Local asset lifecycle passed: early exit cancels decode; obsolete retry result ignored; replacement enters normally.');
+
+// Original custom sheets share the WebGL HUD and never invoke platform selection menus.
+wx.showActionSheet=()=>{throw new Error('native selection sheet must not be used');};
+const menuPage={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};menuPage.onLoad({mode:'snooker'});menuPage.onReady();menuPage.changeOpponent();assert.equal(menuPage._menu,'mode');assert.equal(menuPage._renderer.menu,'mode');menuPage.handleHudAction({action:'menu-select',value:'ai'});assert.equal(menuPage._session.ai,true);assert.equal(menuPage._menu,null);menuPage.changeDifficulty();assert.equal(menuPage._menu,'difficulty');menuPage.handleHudAction({action:'menu-select',value:'hard'});assert.equal(menuPage._session.difficulty,'hard');assert.equal(menuPage._renderer.menu,null);
+menuPage.changeOpponent();const beforeMenuAngle=menuPage._session.angle;menuPage._renderer.hudPointer=()=>false;menuPage.touchStart(touch(20,20));menuPage.touchMove(touch(40,30));menuPage.touchEnd(touch(40,30,true));assert.equal(menuPage._drag,null,'stale HUD regions cannot start a table gesture behind a newly opened sheet');assert.equal(menuPage._session.angle,beforeMenuAngle);menuPage.handleHudAction({action:'shoot'});assert.equal(menuPage._session.stroke.isActive,false,'menu state blocks underlying shot actions');menuPage.handleHudAction({action:'menu-close'});assert.equal(menuPage._menu,null);
+menuPage._session.setOpponent(false);menuPage._session.match.resolveShot(menuPage._session.match.beginShot(),{firstContact:'red-1',potted:['red-1']});menuPage._session.notify();assert.equal(menuPage.data.nominate,true);menuPage.handleHudAction({action:'color-picker'});assert.equal(menuPage._menu,'color');menuPage.handleHudAction({action:'menu-select',value:'blue'});assert.equal(menuPage._session.snapshot().selectedColor,'blue');assert.equal(menuPage._menu,null);
+menuPage.changeOpponent();menuPage.pause();assert.equal(menuPage._menu,null);assert.equal(menuPage._renderer.menu,null);menuPage.resume();menuPage.changeOpponent();menuPage.onHide();assert.equal(menuPage._menu,null);menuPage.onShow();menuPage.resume();menuPage.changeOpponent();menuPage.onUnload();assert.equal(menuPage._menu,null);assert.equal(frames.size,0);
+console.log('Original custom-sheet page flow passed: mode/difficulty/color commit, selection closes, no native action sheet, no click-through, pause/background/unload cleanup.');
+
+const adPage={...definition,data:{...definition.data},setData(values){Object.assign(this.data,values);}};
+adPage.onLoad({mode:'eight'});adPage.onReady();const originalRounds=adRounds,originalRequests=adRequests;
+adPage.restart();assert.equal(adRequests,originalRequests);
+const finalState={...adPage._session.snapshot(),phase:'finished',winner:0};adPage.syncState(finalState);adPage.syncState(finalState);assert.equal(adRounds,originalRounds+1);
+holdAd=true;adPage.restart();adPage.restart();assert.equal(adRequests,originalRequests+1);assert.equal(adPage.data.finished,true);
+adClose();assert.equal(adPage.data.finished,false);assert.equal(adPage._adGate,false);adPage.onUnload();holdAd=false;
+assert.equal(frames.size,0);console.log('Billiards ad gate passed: count finished match once, no mid-match ad, prevent double restart and resume after close.');

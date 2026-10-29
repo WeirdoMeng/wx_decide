@@ -1,0 +1,21 @@
+# 本机开发者工具配置与系统文件
+project.private.config.json
+.DS_Store
+.agents/
+
+# 密钥只配置在云端；允许提交空值配置示例
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 依赖、缓存与临时输出
+node_modules/
+__pycache__/
+*.py[cod]
+*.log
+.venv/
+coverage/

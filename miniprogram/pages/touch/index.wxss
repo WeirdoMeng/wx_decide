@@ -1,0 +1,1 @@
+.touch-canvas{flex:1;min-height:0;width:100%;display:block}.bottom-safe{height:env(safe-area-inset-bottom);flex-shrink:0}

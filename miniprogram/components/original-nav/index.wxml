@@ -1,0 +1,8 @@
+<view class="nav-space" style="height:{{safeTop + navHeight + (help ? helpHeight : 0)}}px">
+ <view class="nav" style="height:{{navHeight}}px;top:{{safeTop}}px">
+  <button wx:if="{{back}}" class="back" bindtap="goBack" aria-label="返回"><image class="back-icon" src="/assets/original/arrow_back_ios_new_rounded.png" mode="aspectFit"/></button>
+  <image wx:elif="{{brand}}" class="brand-icon" src="/assets/original/home_logo.png" mode="aspectFit"/>
+  <text class="nav-title {{brand ? 'brand-title' : ''}}" style="left:{{back || brand ? 60 : 16}}px;right:{{titleRight}}px">{{title}}</text>
+ </view>
+ <view wx:if="{{help}}" class="nav-tools" style="top:{{safeTop + navHeight}}px;height:{{helpHeight}}px"><button class="help-button" bindtap="showHelp" bindlongpress="helpLongPress" aria-label="{{helpLabel}}"><image class="help-icon" src="{{helpIcon}}" mode="aspectFit"/><text class="help-label">{{helpLabel}}</text></button></view>
+</view>

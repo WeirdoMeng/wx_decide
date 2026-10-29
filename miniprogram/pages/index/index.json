@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "usingComponents": {
+    "art-button": "/components/art-button/index",
+    "result-dialog": "/components/result-dialog/index",
+    "list-sheet": "/components/list-sheet/index",
+    "original-nav": "/components/original-nav/index"
+  }
+}

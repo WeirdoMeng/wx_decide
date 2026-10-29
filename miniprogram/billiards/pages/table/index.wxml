@@ -1,0 +1,1 @@
+<view class="billiards-page"><canvas id="table" type="webgl" class="table-canvas" disable-scroll="{{true}}" bindtouchstart="touchStart" catchtouchmove="touchMove" bindtouchend="touchEnd" bindtouchcancel="touchCancel"></canvas></view>

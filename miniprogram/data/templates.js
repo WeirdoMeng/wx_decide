@@ -1,0 +1,132 @@
+// 来源：Flutter 小决定主包默认模板。由 tools/import-scenes.py 生成。
+module.exports = [
+  {
+    "id": "tpl_eat",
+    "title": "今天吃什么",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "火锅"
+      },
+      {
+        "text": "烧烤"
+      },
+      {
+        "text": "麻辣烫"
+      },
+      {
+        "text": "日料"
+      },
+      {
+        "text": "快餐"
+      },
+      {
+        "text": "面条"
+      },
+      {
+        "text": "盖饭"
+      },
+      {
+        "text": "随便"
+      }
+    ]
+  },
+  {
+    "id": "tpl_yesno",
+    "title": "是 或 否",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "是"
+      },
+      {
+        "text": "否"
+      }
+    ]
+  },
+  {
+    "id": "tpl_truth_dare",
+    "title": "真心话大冒险",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "真心话"
+      },
+      {
+        "text": "大冒险"
+      }
+    ]
+  },
+  {
+    "id": "tpl_weekend",
+    "title": "周末去哪",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "看电影"
+      },
+      {
+        "text": "逛公园"
+      },
+      {
+        "text": "宅在家"
+      },
+      {
+        "text": "去健身"
+      },
+      {
+        "text": "下馆子"
+      },
+      {
+        "text": "逛商场"
+      }
+    ]
+  },
+  {
+    "id": "tpl_pay",
+    "title": "谁来买单",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "我"
+      },
+      {
+        "text": "你"
+      },
+      {
+        "text": "他"
+      },
+      {
+        "text": "AA 制"
+      }
+    ]
+  },
+  {
+    "id": "tpl_drink",
+    "title": "喝什么",
+    "type": "wheel",
+    "updatedAt": 0,
+    "items": [
+      {
+        "text": "美式"
+      },
+      {
+        "text": "拿铁"
+      },
+      {
+        "text": "奶茶"
+      },
+      {
+        "text": "果茶"
+      },
+      {
+        "text": "白开水"
+      }
+    ]
+  }
+];

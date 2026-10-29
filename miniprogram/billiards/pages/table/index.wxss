@@ -1,0 +1,1 @@
+page{background:#071813;overflow:hidden}.billiards-page{position:fixed;left:0;right:0;top:0;bottom:0;width:100%;height:100%;background:#071813}.table-canvas{position:absolute;left:0;top:0;width:100%;height:100%}

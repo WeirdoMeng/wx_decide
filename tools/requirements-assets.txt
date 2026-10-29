@@ -1,0 +1,2 @@
+Pillow>=10,<13
+imagequant==1.1.5

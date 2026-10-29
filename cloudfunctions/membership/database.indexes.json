@@ -1,0 +1,6 @@
+{
+  "member_orders": [
+    { "name": "owner_created", "fields": [{ "field": "openid", "direction": "asc" }, { "field": "createdAt", "direction": "desc" }] },
+    { "name": "state_checked", "fields": [{ "field": "state", "direction": "asc" }, { "field": "checkedAt", "direction": "asc" }] }
+  ]
+}

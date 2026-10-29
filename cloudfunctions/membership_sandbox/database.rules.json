@@ -1,0 +1,14 @@
+{
+  "sandbox_member_users": {
+    "read": false,
+    "write": false
+  },
+  "sandbox_member_orders": {
+    "read": false,
+    "write": false
+  },
+  "sandbox_member_grants": {
+    "read": false,
+    "write": false
+  }
+}
