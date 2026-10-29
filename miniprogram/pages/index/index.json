@@ -1,6 +1,6 @@
 {
   "navigationStyle": "custom",
-  "disableScroll": true,
+  "disableScroll": false,
   "usingComponents": {
     "art-button": "/components/art-button/index",
     "result-dialog": "/components/result-dialog/index",
