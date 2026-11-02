@@ -2,21 +2,23 @@ const account=require('../../utils/account');
 const payment=require('../../utils/member-payment');
 const storage=require('../../utils/storage');
 Page({
-  data:{name:'微信用户',avatarUrl:'',avatarFailed:false,adFree:false,ready:false,payEnv:0,busy:false,hint:''},
-  onLoad(){this._destroyed=false;},
+  data:{loggedIn:false,name:'游客',avatarUrl:'',avatarFailed:false,adFree:false,ready:false,payEnv:0,busy:false,hint:''},
+  onLoad(){this._destroyed=false;this._unsubscribe=account.subscribe(()=>{if(this._active)this.update();});},
   onShow(){
     this._active=true;
     const bar=this.getTabBar&&this.getTabBar();if(bar)bar.setData({selected:2,hidden:false});
-    if(!account.isReady()){if(wx.reLaunch)wx.reLaunch({url:'/pages/login/index?next=pages%2Fmine%2Findex'});return;}
     this.update();this.restore(true);
   },
   onHide(){this._active=false;},
-  onUnload(){this._active=false;this._destroyed=true;},
+  onUnload(){this._active=false;this._destroyed=true;if(this._unsubscribe)this._unsubscribe();},
   onMembershipChange(){if(this._active)this.update();},
   update(){
-    const value=account.getState();if(!value||this._destroyed)return;
-    this.setData({name:value.user.name,avatarUrl:value.user.avatarUrl||'',avatarFailed:false,adFree:value.entitlement.adFree,ready:value.catalogue.ready,payEnv:value.catalogue.payEnv||0});
+    const value=account.getState();if(this._destroyed)return;
+    if(!value){this.setData({loggedIn:false,name:'游客',avatarUrl:'',avatarFailed:false,adFree:false,ready:false,hint:''});return;}
+    this.setData({loggedIn:true,name:value.user.name,avatarUrl:value.user.avatarUrl||'',avatarFailed:false,adFree:value.entitlement.adFree,ready:value.catalogue.ready,payEnv:value.catalogue.payEnv||0});
   },
+  login(){wx.navigateTo({url:'/pages/login/index?next=pages%2Fmine%2Findex'});},
+  editProfile(){if(!account.isReady()){this.login();return;}wx.navigateTo({url:'/pages/login/index?mode=profile&next=pages%2Fmine%2Findex'});},
   avatarError(){this.setData({avatarFailed:true});},
   pendingKey(){return this.data.payEnv===1?'account:sandbox:pendingOrder':'account:pendingOrder';},
   pending(){const value=storage.read(this.pendingKey(),null),state=account.getState();return value&&state&&value.owner===state.user.id?value:null;},
@@ -42,9 +44,10 @@ Page({
     }catch(err){console.warn('[membership] restore',{code:err.code||'RESTORE_PENDING'});if(!quiet&&this._active)this.setData({hint:'权益暂未确认，请稍后再试'});}
     finally{if(!this._destroyed)this.setData({busy:false});}
   },
-  refreshMembership(){this.restore(false);},
+  refreshMembership(){if(!account.isReady()){this.login();return;}this.restore(false);},
   async buy(){
-    if(this.data.busy||account.isAdFree()||!account.isReady())return;
+    if(this.data.busy||account.isAdFree())return;
+    if(!account.isReady()){this.login();return;}
     const unsupported=payment.unavailable(wx,this.data.payEnv);if(unsupported){wx.showToast({title:unsupported,icon:'none'});return;}
     this.setData({busy:true,hint:''});
     let orderId='',cancelled=false;
@@ -71,5 +74,5 @@ Page({
     }finally{if(!this._destroyed)this.setData({busy:false});}
   },
   purchaseInfo(){wx.showModal({title:'终生免广告 · ¥9.90',content:'一次购买，无自动续费。绑定当前微信账户，免除 Banner、插屏及转盘保存激励广告，所有玩法继续免费。重新登录后可恢复购买。退款成功后收回对应权益；iOS 退款由 Apple 审核，其他终端可通过客服申请。',showCancel:false});},
-  logout(){if(this.data.busy)return;wx.showModal({title:'退出登录',content:'仅退出账户，不会清除本机转盘和游戏设置。',success:res=>{if(res.confirm){account.logout();wx.reLaunch({url:'/pages/login/index'});}}});}
+  logout(){if(this.data.busy)return;wx.showModal({title:'退出登录',content:'仅退出账户，不会清除本机转盘和游戏设置。',success:res=>{if(res.confirm){account.logout();this.update();}}});}
 });

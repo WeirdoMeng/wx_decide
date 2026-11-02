@@ -332,20 +332,28 @@ test('资料和会员异步回复分别比较版本，昵称更新不回退会�
  h.setState({user:{id:'alice',name:'新昵称',profileVersion:1},entitlement:{adFree:false,version:1},catalogue:{}});await h.account.refresh();assert.equal(h.account.isAdFree(),true);assert.equal(h.account.getState().user.name,'新昵称');
  h.setState({user:{id:'alice',name:'旧昵称',profileVersion:0},entitlement:{adFree:false,version:3},catalogue:{}});await h.account.refresh();assert.equal(h.account.isAdFree(),false);assert.equal(h.account.getState().user.name,'新昵称');
 });
-function loginHarness({fail=false,complete=false}={}){
- const fs=require('node:fs'),vm=require('node:vm'),file=require.resolve('../miniprogram/pages/login/index');let definition,ready=complete;
+function loginHarness({fail=false,complete=false,editing=false,readyAccount=false}={}){
+ const fs=require('node:fs'),vm=require('node:vm'),file=require.resolve('../miniprogram/pages/login/index');let definition,ready=complete||readyAccount;
  const calls=[],toasts=[],nav=[];let state={user:{name:'微信用户',profileComplete:complete}};
  const account={isReady:()=>ready,getState:()=>state,hasConsent:()=>false,login:async()=>{if(fail)throw Error('private-debug-error');ready=true;calls.push('login');return state;},updateProfile:async(name,path)=>{calls.push({name,path});state={user:{name,profileComplete:true}};}};
  const api={canIUse:()=>true,showToast:value=>toasts.push(value),switchTab:value=>nav.push(value),reLaunch:value=>nav.push(value)};
  vm.runInNewContext(fs.readFileSync(file,'utf8'),{Page:value=>{definition=value;},require:name=>name.endsWith('/account')?account:require('../miniprogram/utils/login-route'),wx:api,console:{warn(){}}});
- const instance={...definition,data:structuredClone(definition.data),setData(value){Object.assign(this.data,value);}};instance.onLoad({});instance.onShow();
+ const instance={...definition,data:structuredClone(definition.data),setData(value){Object.assign(this.data,value);}};instance.onLoad({mode:editing?'profile':''});instance.onShow();
  return{instance,calls,toasts,nav};
 }
-test('登录使用原生头像和表单昵称，保存后进入首页；已完善资料的账户直接进入',async()=>{
- const h=loginHarness();h.instance.chooseAvatar({detail:{avatarUrl:'wxfile://avatar'}});await h.instance.submitProfile({detail:{value:{nickname:'小明'}}});assert.equal(h.calls[1].name,'小明');assert.equal(h.calls[1].path,'wxfile://avatar');assert.equal(h.nav[0].url,'/pages/index/index');
- const existing=loginHarness({complete:true});assert.equal(existing.nav.length,1);assert.equal(existing.calls.length,0);
+test('登录不采集头像昵称，资料不完整也能进入；登录页可跳过',async()=>{
+ const h=loginHarness();assert.equal(h.calls.length,0);await h.instance.login();
+ assert.deepEqual(h.calls,['login']);assert.equal(h.nav[0].url,'/pages/index/index');
+ const existing=loginHarness({readyAccount:true});assert.equal(existing.nav.length,1);assert.equal(existing.calls.length,0);
+ const guest=loginHarness();guest.instance.browse();assert.equal(guest.nav[0].url,'/pages/index/index');assert.equal(guest.calls.length,0);
+});
+test('只有主动编辑资料时保存头像昵称，缺失字段不影响普通登录',async()=>{
+ const h=loginHarness({editing:true,readyAccount:true});assert.equal(h.nav.length,0);
+ h.instance.chooseAvatar({detail:{avatarUrl:'wxfile://avatar'}});await h.instance.submitProfile({detail:{value:{nickname:'小明'}}});
+ assert.equal(h.calls[0].name,'小明');assert.equal(h.calls[0].path,'wxfile://avatar');assert.equal(h.nav.length,1);
+ const plain=loginHarness();await plain.instance.submitProfile({detail:{value:{nickname:'小明'}}});assert.equal(plain.calls.length,0);
 });
 test('昵称组件清空后的表单值不能被旧值替代，登录失败不显示原始报错',async()=>{
- const h=loginHarness();h.instance.setData({avatarUrl:'wxfile://avatar',nickname:'旧昵称'});await h.instance.submitProfile({detail:{value:{nickname:''}}});assert.equal(h.calls.length,0);assert.equal(h.nav.length,0);
- const failed=loginHarness({fail:true});failed.instance.setData({avatarUrl:'wxfile://avatar'});await failed.instance.submitProfile({detail:{value:{nickname:'小明'}}});assert.equal(failed.instance.data.error,undefined);assert.equal(failed.instance.data.busy,false);assert.doesNotMatch(JSON.stringify(failed.toasts),/private-debug-error/);
+ const h=loginHarness({editing:true});h.instance.setData({avatarUrl:'wxfile://avatar',nickname:'旧昵称'});await h.instance.submitProfile({detail:{value:{nickname:''}}});assert.equal(h.calls.length,0);assert.equal(h.nav.length,0);
+ const failed=loginHarness({fail:true});await failed.instance.login();assert.equal(failed.instance.data.error,undefined);assert.equal(failed.instance.data.busy,false);assert.doesNotMatch(JSON.stringify(failed.toasts),/private-debug-error/);
 });

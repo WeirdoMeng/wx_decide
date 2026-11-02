@@ -162,10 +162,10 @@ test('激励视频在未加载、加载错误或超时时绝不发完成奖励',
     ad.handlers.load();ad.handlers.close({isEnded:true});assert.deepEqual(results,['error']);assert.equal(ad.shows,0);
   }
 });
-test('保存50%随机，全部7个插屏入口从本次第3次起20%，前2次不触发',()=>{
+test('保存50%随机，全部11个插屏入口从本次第3次起20%，前2次不触发',()=>{
  assert.equal(production.triggers.save.probability,.5);assert.equal(production.policy.pityActions,25);
  const f=fixture();f.config.triggers=production.triggers;f.api.createRewardedVideoAd=f.api.createInterstitialAd;
- for(const key of ['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards']){
+ for(const key of ['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount']){
   assert.equal(production.triggers[key].probability,.20);
   const manager=createManager({...f.options,random:()=>.1});
   assert.equal(manager.shouldOffer(key),false);assert.equal(manager.shouldOffer(key),false);assert.equal(manager.shouldOffer(key),true);
@@ -187,7 +187,7 @@ function pityFixture(saved) {
  const options={...f.options,random:()=>.999,log:(type,detail)=>logs.push({type,detail})};
  return {...f,options,logs,manager:createManager(options)};
 }
-const operationEntries=['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards'];
+const operationEntries=['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount'];
 test('全部插屏入口共用25次兜底，连续随机落空时第25次仍创建一次插屏',async()=>{
   const f=pityFixture();
   for(let i=0;i<24;i++)assert.equal(f.manager.shouldOffer(operationEntries[i%operationEntries.length]),false);

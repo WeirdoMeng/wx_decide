@@ -1,0 +1,41 @@
+{
+  "sourceSha256": "0b6b937e24029f650ceeeaf9c96ebb4199966f11682366a090a44c4d19c19cfa",
+  "resourceSha256": "f090fd87a1f54b7fad8719a3453f9489f225a9213b090f0c7cf8273e5be8a613",
+  "meshes": {
+    "cup": 274,
+    "tray": 326,
+    "die": 330
+  },
+  "animations": {
+    "open_2": 353,
+    "open_3": 354,
+    "rock_2": 356
+  },
+  "outputs": [
+    {
+      "file": "miniprogram/dice/assets/scene.bin",
+      "bytes": 566528,
+      "sha256": "b6e251da823918a8b9bd304428854320ca0a2e653a35fc10cb356a6f6878e509"
+    },
+    {
+      "file": "miniprogram/dice/assets/cup.wav",
+      "bytes": 228328,
+      "sha256": "0cf95d1b74ecef7773baae81052c58f3ddd8f15e4e9f31c674d9719001e967dd"
+    },
+    {
+      "file": "miniprogram/dice/assets/dice.wav",
+      "bytes": 36524,
+      "sha256": "20d1256cd708ff15cb4d9cb27ede2d6e7773f5b0eb61c574f69feb683e58a598"
+    },
+    {
+      "file": "miniprogram/dice/assets/table.wav",
+      "bytes": 36296,
+      "sha256": "599bda0dcb8e0c61e8eec82a1422f5ed5629b46ced0c2395c8960b79522c8fdc"
+    },
+    {
+      "file": "miniprogram/dice/scene.js",
+      "bytes": 12648,
+      "sha256": "3e7a87bae350f6766a8de9fe16c0ed8847d8cf146581e8580496c89aa1a272fd"
+    }
+  ]
+}

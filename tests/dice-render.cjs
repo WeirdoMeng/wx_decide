@@ -1,0 +1,27 @@
+/* 实际WebGL1与原动画回归，不调用云服务或支付。运行 node tests/dice-render.cjs。
+ * 输出到 DICE_ARTIFACTS 或 /tmp/wx-decide-dice-real3d；不能替代微信真机验收。
+ */
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'/Users/apple/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const root=path.resolve(__dirname,'../miniprogram/dice'),out=process.env.DICE_ARTIFACTS||'/tmp/wx-decide-dice-real3d';fs.mkdirSync(out,{recursive:true});
+const html=`<!doctype html><meta charset="utf-8"><style>body{margin:0;background:linear-gradient(135deg,#f4e9ff,#e3f5ff)}canvas{width:390px;height:390px;display:block}</style><canvas></canvas><script>
+async function load(name,deps){const module={exports:{}};new Function('module','exports','require',await(await fetch(name+'.js')).text())(module,module.exports,n=>deps[n]);return module.exports;}
+window.ready=(async()=>{const scene=await load('scene',{}),motion=await load('motion',{'./scene':scene}),{DiceRenderer}=await load('renderer',{'./scene':scene,'./motion':motion});window.source=scene;const element=document.querySelector('canvas');
+// 只暴露微信Canvas必要接口；不允许播放器依赖DOM尺寸/style等属性。
+const canvas={getContext:(...args)=>element.getContext(...args),requestAnimationFrame:fn=>window.requestAnimationFrame(fn),cancelAnimationFrame:id=>window.cancelAnimationFrame(id)};
+for(const key of ['width','height'])Object.defineProperty(canvas,key,{get:()=>element[key],set:v=>element[key]=v});Object.defineProperty(canvas,'style',{get(){throw Error('native Canvas has no style');}});
+window.renderer=new DiceRenderer(canvas,await(await fetch('assets/scene.bin')).arrayBuffer(),{width:390,height:390,pixelRatio:2,onError:error=>{throw error;}});renderer.setState([1,2,3,4,5,6],false);
+window.snapshot=()=>{renderer.draw();const gl=renderer.gl,b=new Uint8Array(gl.drawingBufferWidth*gl.drawingBufferHeight*4);gl.readPixels(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight,gl.RGBA,gl.UNSIGNED_BYTE,b);let count=0,hash=0;for(let i=0;i<b.length;i+=4){if(b[i+3])count++;hash=(hash+b[i]+b[i+1]*3+b[i+2]*7)>>>0;}return {pixels:count,hash,error:gl.getError(),buffer:[gl.drawingBufferWidth,gl.drawingBufferHeight],values:renderer.values.slice(),pose:renderer.pose.slice()};};})();</script>`;
+const server=http.createServer((request,response)=>{if(request.url==='/'){response.setHeader('Content-Type','text/html; charset=utf-8');response.end(html);return;}const name=request.url.slice(1);if(!['scene.js','motion.js','renderer.js','assets/scene.bin'].includes(name)){response.writeHead(404);response.end();return;}response.end(fs.readFileSync(path.join(root,name)));});
+(async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;try{
+ browser=await chromium.launch({executablePath:process.env.CHROME_BIN||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:390,height:390},deviceScaleFactor:2}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:'+server.address().port);await page.evaluate(()=>window.ready);const closed=await page.evaluate(()=>snapshot());assert.ok(closed.pixels>100000);assert.equal(closed.error,0);assert.deepEqual(closed.buffer,[780,780]);await page.screenshot({path:path.join(out,'closed.png')});
+ await page.evaluate(()=>{window.finished=0;renderer.open(()=>finished++);});await page.waitForFunction(()=>finished===1);const opened=await page.evaluate(()=>snapshot());assert.equal(opened.error,0);assert.ok(Math.abs(opened.pose[7])>20);assert.notEqual(opened.hash,closed.hash);assert.deepEqual(opened.values,closed.values);await page.screenshot({path:path.join(out,'open.png')});
+ await page.evaluate(()=>{window.started=0;renderer.roll([6,5,4,3,2,1],()=>finished++,()=>started++);});await page.waitForFunction(()=>started===1);await page.waitForTimeout(350);const moving=await page.evaluate(()=>snapshot());assert.notEqual(moving.hash,closed.hash);await page.screenshot({path:path.join(out,'shaking.png')});await page.waitForFunction(()=>finished===2);assert.equal(await page.evaluate(()=>renderer.animation),null);
+ await page.evaluate(()=>renderer.open(()=>finished++));await page.waitForTimeout(130);await page.screenshot({path:path.join(out,'opening.png')});await page.waitForFunction(()=>finished===3);const final=await page.evaluate(()=>snapshot());assert.deepEqual(final.values,[6,5,4,3,2,1]);assert.equal(final.error,0);await page.screenshot({path:path.join(out,'revealed.png')});
+ await page.evaluate(()=>renderer.close(()=>finished++));await page.waitForFunction(()=>finished===4);assert.ok(Math.abs(await page.evaluate(()=>renderer.pose[7]))<.001);
+ await page.evaluate(()=>{renderer.roll([1,1,1,1,1,1],()=>finished++);renderer.cancel();});await page.waitForTimeout(1400);assert.equal(await page.evaluate(()=>finished),4);
+ await page.evaluate(()=>renderer.dispose());assert.equal(await page.evaluate(()=>renderer.disposed),true);assert.equal(errors.length,0,errors.join('\n'));
+ fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({closed,opened,moving,final,errors},null,2));console.log('实际WebGL1：原盅/盘/骰子、源开合与摇动、DPR、取消及释放回归通过。输出：'+out);
+ }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}})().catch(error=>{console.error(error);process.exitCode=1;});

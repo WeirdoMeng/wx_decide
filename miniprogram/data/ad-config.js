@@ -26,6 +26,10 @@ module.exports = {
     passBalloon: { minActions: 3, probability: 0.20 },
     numberBomb: { minActions: 3, probability: 0.20 },
     sharkTeeth: { minActions: 3, probability: 0.20 },
+    diceShake: { minActions: 3, probability: 0.20 },
+    diceClose: { minActions: 3, probability: 0.20 },
+    diceCount: { minActions: 3, probability: 0.20 },
+    diceOpen: { minActions: 3, probability: 0.20 },
     billiards: { minActions: 3, probability: 0.20 }
   },
   // 普通视频暂不启用；它不属于观看后发奖励的激励视频。

@@ -5,23 +5,25 @@
   <view class="content">
    <view class="profile">
     <view class="avatar"><image wx:if="{{avatarFailed ? false : avatarUrl}}" class="user-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="avatarError"/><image wx:else class="fallback-avatar" src="/assets/original/person_rounded.png" mode="aspectFit"/></view>
-    <view class="profile-info"><view class="name">{{name}}</view><view class="member-status {{adFree ? 'is-member' : 'is-guest'}}"><image class="vip-icon" src="/assets/original/vip_member_logo.png" mode="aspectFit"/><text>{{adFree ? '终生会员' : '普通会员'}}</text></view></view>
+    <view class="profile-info"><view class="name">{{name}}</view><view class="member-status {{adFree ? 'is-member' : 'is-guest'}}"><image class="vip-icon" src="/assets/original/vip_member_logo.png" mode="aspectFit"/><text>{{adFree ? '终身会员' : '非会员'}}</text></view></view>
    </view>
    <view class="card membership">
     <view class="member-title">终生免广告</view>
     <view class="member-description">让选择更专注，让聚会更尽兴</view>
     <view class="price" wx:if="{{!adFree}}"><text class="currency">¥</text>9.90<text class="once"> / 一次付费</text></view>
     <view class="benefits"><view>✓ 首页与聚会页无广告</view><view>✓ 游戏过程无广告打扰</view><view>✓ 转盘功能无广告打扰</view></view>
-    <button class="primary" wx:if="{{!adFree}}" disabled="{{busy || !ready}}" loading="{{busy}}" bindtap="buy">{{ready ? '¥9.90 终生免广告' : '暂不可购买'}}</button>
+    <button class="primary" wx:if="{{!adFree}}" disabled="{{busy || (loggedIn && !ready)}}" loading="{{busy}}" bindtap="buy">{{!loggedIn ? '登录后开通免广告' : (ready ? '¥9.90 终生免广告' : '暂不可购买')}}</button>
     <view wx:else class="member-active">免广告权益已生效</view>
     <view class="footnote">不自动续费 · 绑定当前微信账户</view>
    </view>
    <view class="hint" wx:if="{{hint}}">{{hint}}</view>
    <view class="card menu">
+    <button wx:if="{{!loggedIn}}" bindtap="login">登录同步会员权益<text>›</text></button>
+    <button wx:if="{{loggedIn}}" bindtap="editProfile">编辑头像和昵称（选填）<text>›</text></button>
     <button bindtap="refreshMembership" disabled="{{busy}}">恢复购买 / 刷新权益<text>›</text></button>
     <button bindtap="purchaseInfo">购买说明<text>›</text></button>
     <button open-type="contact" session-from="membership">联系客服<text>›</text></button>
-    <button bindtap="logout" disabled="{{busy}}">退出登录<text>›</text></button>
+    <button wx:if="{{loggedIn}}" bindtap="logout" disabled="{{busy}}">退出登录<text>›</text></button>
    </view>
   </view>
  </view>

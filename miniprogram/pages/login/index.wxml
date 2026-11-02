@@ -1,15 +1,15 @@
 <view class="original-screen">
  <image class="main-bg" src="/assets/original/main_bg.jpg" mode="aspectFill"/>
  <view class="original-body">
-  <original-nav title="小决定" brand="{{true}}" back="{{false}}"/>
+  <original-nav title="小决定" brand="{{true}}" back="{{true}}"/>
   <view class="welcome">
    <image class="logo" src="/assets/original/home_logo.png" mode="aspectFit"/>
    <view class="title">把纠结交给小决定</view>
    <view class="subtitle">做个选择，和朋友玩一局</view>
    <view class="card login-card">
-   <form class="profile-form" bindsubmit="submitProfile">
-    <view class="section-title">认识一下，新的朋友</view>
-    <view class="description">选择头像和昵称，开启你的小决定</view>
+   <form wx:if="{{editing}}" class="profile-form" bindsubmit="submitProfile">
+    <view class="section-title">编辑个人资料</view>
+    <view class="description">资料仅用于“我的”页展示，可随时返回，所有玩法均可使用</view>
     <button wx:if="{{canChooseAvatar}}" class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{busy}}" aria-label="选择微信头像">
      <image wx:if="{{avatarUrl}}" class="chosen-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="avatarError"/>
      <image wx:else class="default-avatar" src="/assets/original/person_rounded.png" mode="aspectFit"/>
@@ -18,9 +18,15 @@
     <view wx:else class="avatar-picker"><image class="default-avatar" src="/assets/original/person_rounded.png" mode="aspectFit"/></view>
     <view class="avatar-caption">{{avatarUrl ? '点击更换头像' : '选择微信头像'}}</view>
     <view class="nickname-field"><text class="field-label">昵称</text><input name="nickname" type="nickname" value="{{nickname}}" maxlength="20" placeholder="填写你的昵称" placeholder-class="nickname-placeholder" bindinput="nicknameChange" bindblur="nicknameChange" disabled="{{busy}}"/></view>
-    <button class="primary login-submit" form-type="submit" loading="{{busy}}" disabled="{{busy || !canChooseAvatar}}">微信登录并继续</button>
+    <button class="primary login-submit" form-type="submit" loading="{{busy}}" disabled="{{busy || !canChooseAvatar}}">保存资料</button>
     <view class="hint">{{canChooseAvatar ? '资料仅用于个人展示，免广告权益绑定微信账户' : '请更新微信后选择头像与昵称'}}</view>
    </form>
+   <view wx:else>
+    <view class="section-title">登录同步会员权益</view>
+    <view class="description">登录用于购买、恢复免广告权益，无需提供头像和昵称。所有玩法均可直接使用。</view>
+    <button class="primary login-submit" loading="{{busy}}" disabled="{{busy}}" bindtap="login">微信登录</button>
+    <button class="browse" bindtap="browse">暂不登录，直接使用</button>
+   </view>
    </view>
   </view>
  </view>

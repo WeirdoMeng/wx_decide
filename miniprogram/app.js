@@ -9,14 +9,8 @@ App({
  },
  onShow(options){
   ads.startSession();
-  // 普通入口由登录页承接；分享/扫码直达也统一经过登录。
-  if(!account.isReady()){
-   const path=options&&options.path;
-   if(path&&path!=='pages/login/index'){
-    const query=Object.entries(options.query||{}).map(([key,value])=>encodeURIComponent(key)+'='+encodeURIComponent(value)).join('&');
-    const next=path+(query?'?'+query:'');
-    wx.reLaunch({url:'/pages/login/index?next='+encodeURIComponent(next)});
-   }
-  }else account.refresh().catch(()=>{});
+  // 游客可直接浏览和游玩；仅恢复用户之前主动登录的账户，不索取头像昵称。
+  if(account.isReady())account.refresh().catch(()=>{});
+  else if(account.hasConsent())account.login().catch(()=>{});
  }
 });

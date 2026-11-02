@@ -1,0 +1,3 @@
+UnityPy==1.25.4
+Pillow==11.3.0
+fmod-toolkit==0.1.3

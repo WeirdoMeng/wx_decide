@@ -1,0 +1,20 @@
+<view class="dice-screen original-screen">
+ <image class="main-bg" src="/assets/original/main_bg.jpg" mode="aspectFill"/>
+ <view class="original-body">
+  <original-nav title="摇骰子" help="{{true}}" help-label="玩法说明" bind:help="showHelp"/>
+  <view class="dice-content">
+   <view class="dice-heading">{{phase === 'rolling' ? '骰子正在摇动…' : phase === 'opening' ? '正在打开骰盅' : phase === 'closing' ? '正在盖回骰盅' : phase === 'covered' ? '摇好了，开盅看看' : phase === 'open' ? '这一局，点数揭晓' : '一起摇出点小惊喜'}}</view>
+   <view class="dice-description">{{phase === 'rolling' ? '骰子正在盅里碰撞，请稍等' : phase === 'opening' ? '骰盅正在移开，点数马上揭晓' : phase === 'closing' ? '本轮点数保持不变' : phase === 'covered' ? '点一下骰盅，揭晓这一轮点数' : phase === 'open' ? '盖盅保留结果，再摇开始新一轮' : '选择骰子数量，点按钮或摇动手机'}}</view>
+   <view class="card dice-config"><view class="config-label">骰子数量<text>{{count}} 颗</text></view><view class="count-options"><button wx:for="{{choices}}" wx:key="*this" class="count-option {{count === item ? 'selected' : ''}}" data-count="{{item}}" disabled="{{busy || adPending}}" bindtap="chooseCount" aria-label="{{item}}颗骰子">{{item}}</button></view></view>
+   <view class="dice-stage">
+    <canvas id="dice-scene" type="webgl" class="dice-scene" bindtap="sceneTap" bindtouchstart="sceneTouchStart" bindtouchend="sceneTouchEnd" bindtouchcancel="sceneTouchCancel" hidden="{{renderError}}"></canvas>
+    <view class="scene-loading" wx:if="{{!renderReady}}"><view>{{renderError ? '骰盅暂时没有准备好' : '正在准备骰盅…'}}</view><button wx:if="{{renderError}}" class="secondary" bindtap="initScene">重新加载</button></view>
+    <view class="stage-hint" wx:if="{{renderReady}}">{{phase === 'rolling' ? '骰盅和底盘正在摇动…' : phase === 'opening' ? '正在开盅…' : phase === 'closing' ? '正在盖盅…' : phase === 'covered' ? '轻触或上滑开盅' : phase === 'open' ? '轻触或下滑盖盅' : '准备好，就摇一摇'}}</view>
+   </view>
+   <view wx:if="{{phase === 'open'}}" class="card sum-card"><view class="total">合计 <text>{{total}}</text> 点</view><view class="point-counts"><text wx:for="{{counts}}" wx:key="value" wx:if="{{item.number > 0}}">{{item.value}}点 × {{item.number}}</text></view></view>
+   <view class="dice-actions"><button class="secondary open-action" disabled="{{busy || adPending || !renderReady ? true : phase === 'covered' ? false : phase !== 'open'}}" bindtap="cupButton">{{phase === 'closing' ? '盖盅中…' : phase === 'opening' ? '开盅中…' : phase === 'open' ? '盖盅' : '开盅'}}</button><view class="shake-action"><art-button width="474rpx" label="{{phase === 'rolling' ? '摇动中…' : round ? '再摇一局' : '摇一摇'}}" disabled="{{busy || adPending || !renderReady}}" bind:action="shakeButton"/></view></view>
+   <button wx:if="{{motionAvailable}}" class="motion-switch" bindtap="toggleMotion">摇动手机：{{motionEnabled ? '已开启' : '已关闭'}}<text>{{motionEnabled ? '轻点关闭' : '轻点开启'}}</text></button>
+   <view wx:else class="sensor-note">点击“摇一摇”按钮即可开始</view>
+  </view>
+ </view>
+</view>

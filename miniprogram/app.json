@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/login/index",
     "pages/index/index",
+    "pages/login/index",
     "pages/party/index",
     "pages/lists/index",
     "pages/list-edit/index",
@@ -16,6 +16,12 @@
       "root": "billiards",
       "pages": [
         "pages/table/index"
+      ]
+    },
+    {
+      "root": "dice",
+      "pages": [
+        "pages/play/index"
       ]
     }
   ],

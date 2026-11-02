@@ -1,0 +1,68 @@
+{
+  "source": "shaizi/app/src/main/assets/bin/Data/data.unity3d",
+  "sha256": "0b6b937e24029f650ceeeaf9c96ebb4199966f11682366a090a44c4d19c19cfa",
+  "unityPy": "1.25.4",
+  "assets": [
+    {
+      "pathId": 330,
+      "name": "dice_Baked",
+      "type": "Mesh",
+      "vertices": 14219,
+      "output": "die-1.png … die-6.png"
+    },
+    {
+      "pathId": 465,
+      "file": "die-preview.png",
+      "name": "经典",
+      "type": "Sprite"
+    },
+    {
+      "pathId": 505,
+      "file": "cup.png",
+      "name": "经典",
+      "type": "Sprite"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "cup.png",
+      "bytes": 55079,
+      "sha256": "1d6ee422b975ac0515ddfe0e79f488f21bdc3d2c47859d262d5b335687ab044d"
+    },
+    {
+      "name": "die-1.png",
+      "bytes": 24211,
+      "sha256": "0aa9fc49db0f84ed226dfe48042f2276eb3c98adeeeba4b6f1228c078ddad6f1"
+    },
+    {
+      "name": "die-2.png",
+      "bytes": 22116,
+      "sha256": "2553592e1466ef76c2eabf8d82680babd44fb40f06a00cb09892f4a4f17019e5"
+    },
+    {
+      "name": "die-3.png",
+      "bytes": 22785,
+      "sha256": "487af0a69e333c02b59a19461787e57242d56c6e2bcb741334d86eacbd053069"
+    },
+    {
+      "name": "die-4.png",
+      "bytes": 23333,
+      "sha256": "3526357871dcdf0146404ae7f02b2709eeed5e34f60e7bd1fbfdd6d7f67d52e2"
+    },
+    {
+      "name": "die-5.png",
+      "bytes": 28459,
+      "sha256": "39d370c902f72bf9c1d97f9fe0967099e41c3fac71351cbb44b0ef64a4974d6c"
+    },
+    {
+      "name": "die-6.png",
+      "bytes": 25531,
+      "sha256": "d67ee44d5d244a94c2e396d7c4f56f002d223873a7b25db845921f1a37591d87"
+    },
+    {
+      "name": "die-preview.png",
+      "bytes": 86285,
+      "sha256": "ed07882f9c34184601027245293977d78a5af353ad9161d2b1d2590dd76d63d4"
+    }
+  ]
+}

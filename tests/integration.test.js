@@ -47,7 +47,7 @@ test('全部注册页及自定义Tab四件套存在，分包和Tab路由有效',
  for(const tab of manifest.tabBar.list)assert.ok(routes.includes(tab.pagePath));
  for(const file of files(MINI).filter(file=>file.endsWith('.js')&&!file.endsWith('renderer.js')&&!file.endsWith('core.js'))){
   const source=fs.readFileSync(file,'utf8');
-  for(const match of source.matchAll(/['"]\/(pages|billiards\/pages)\/([\w/-]+)(?:\?[^'"]*)?['"]/g))assert.ok(routes.includes(match[1]+'/'+match[2]),file+': '+match[0]);
+  for(const match of source.matchAll(/['"]\/(pages|billiards\/pages|dice\/pages)\/([\w/-]+)(?:\?[^'"]*)?['"]/g))assert.ok(routes.includes(match[1]+'/'+match[2]),file+': '+match[0]);
  }
 });
 test('全部WXML事件处理器存在，wx:if/elif必须绑定表达式',()=>{
