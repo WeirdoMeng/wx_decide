@@ -1,0 +1,39 @@
+<view class="original-screen words-screen {{phase === 'playing' ? 'is-playing' : ''}}">
+ <image class="main-bg" src="/assets/original/main_bg.jpg" mode="aspectFill"/>
+ <view class="original-body">
+  <original-nav title="{{title}}" managed-back="{{true}}" bind:back="goBack"/>
+  <view wx:if="{{phase === 'setup'}}" class="setup-content">
+   <view class="setup-intro"><text class="eyebrow">{{mode === 'heads' ? '朋友提示 · 你来猜' : '你来比划 · 队友猜'}}</text><view class="setup-title">{{mode === 'heads' ? '把快乐举过头顶' : '轮到你演啦'}}</view><view class="setup-description">{{mode === 'heads' ? '手机横屏放额头，屏幕朝向朋友。由朋友点击底部按钮判定。' : '一人看词做动作，队友猜答案。不说题目里的字，看看谁最会演。'}}</view><view class="intro-art"><image src="/assets/original/party/{{mode === 'heads' ? 'party_intro_random_person' : 'truth_dare_star'}}.png" mode="aspectFit"/><view class="sample-word">{{mode === 'heads' ? '猜猜我是谁？' : '开演啦！'}}</view></view><button class="help-link" bindtap="showHelp">查看玩法说明 ›</button></view>
+   <view class="card settings-card">
+    <view class="setting-label">选个题库<text>300 个词 · 不重复出题</text></view>
+    <view class="category-options"><button wx:for="{{categories}}" wx:key="key" class="chip {{category === item.key ? 'selected' : ''}}" data-field="category" data-value="{{item.key}}" bindtap="choose">{{item.title}}</button></view>
+    <view class="setting-line"><text>每轮时长</text><view class="chips"><button wx:for="{{durations}}" wx:key="*this" class="chip {{duration === item ? 'selected' : ''}}" data-field="duration" data-value="{{item}}" bindtap="choose">{{item}} 秒</button></view></view>
+    <block wx:if="{{mode === 'charades'}}">
+     <view class="setting-line"><text>玩法模式</text><view class="chips"><button class="chip {{!grouped ? 'selected' : ''}}" bindtap="toggleGrouped" disabled="{{!grouped}}">快速玩</button><button class="chip {{grouped ? 'selected' : ''}}" bindtap="toggleGrouped" disabled="{{grouped}}">分组赛</button></view></view>
+     <view wx:if="{{grouped}}" class="team-options"><picker range="{{teamCounts}}" value="{{teamCount - 2}}" bindchange="teamCountPick"><view class="team-picker-value">队伍 <text>{{teamCount}} 队 ⌄</text></view></picker><picker range="{{roundChoices}}" value="{{rounds - 1}}" bindchange="roundsPick"><view class="team-picker-value">每队 <text>{{rounds}} 轮 ⌄</text></view></picker><button class="team-edit" bindtap="editTeamNames">设置队名 ✎</button></view>
+    </block>
+    <button class="primary start-action" bindtap="start">{{grouped ? '队伍准备，开始比赛' : '准备好了，开始'}} <text>›</text></button>
+   </view>
+  </view>
+  <view wx:elif="{{phase === 'playing'}}" class="play-area">
+   <view class="play-toolbar"><view class="play-score">答对 <text>{{correct}}</text> · 跳过 {{skipped}}</view><view class="time-pill {{seconds <= 10 ? 'urgent' : ''}}">剩余 {{seconds}} 秒</view><button class="pause-button" bindtap="pause"><text>Ⅱ</text> 暂停</button></view>
+   <view class="word-stage"><view class="word {{word.length > 5 ? 'long-word' : ''}}">{{word}}</view></view>
+   <view class="answer-actions"><button class="secondary" bindtap="skip">跳过</button><button class="primary" bindtap="correct">答对了 ✓</button></view>
+  </view>
+  <view wx:elif="{{phase === 'prepare' || phase === 'paused' || phase === 'waiting'}}" class="interlude">
+   <view class="eyebrow">{{teamName}} {{turnLabel}}</view>
+   <view wx:if="{{phase === 'prepare'}}" class="countdown">{{countdown}}</view><view wx:else class="interlude-symbol">{{phase === 'paused' ? 'Ⅱ' : 'GO'}}</view>
+   <view class="interlude-title">{{phase === 'prepare' ? (mode === 'heads' ? '把手机举到额头' : '让队友站在屏幕背面') : phase === 'paused' ? '先歇一口气' : '传好手机，再继续'}}</view>
+   <view class="minor">{{phase === 'paused' ? '词语已遮住，剩余时间已暂停' : '准备时间不计入本轮时长'}}</view>
+   <button wx:if="{{phase !== 'prepare'}}" class="primary" bindtap="resume">{{phase === 'paused' ? '继续猜词' : '准备好了'}} </button>
+  </view>
+  <view wx:else class="result-content">
+   <view class="round-summary"><view class="eyebrow">{{final ? '这一场，默契满分' : teamName + ' · 本轮完成'}}</view><view class="result-title">{{final && grouped ? '本场排行榜' : '你们也太会猜了！'}}</view><view wx:if="{{!grouped || !final}}" class="score-number">{{correct}}<text> 题答对</text></view><view class="minor">{{!grouped || !final ? '跳过 ' + skipped + ' 题 · 每答对一题得 1 分' : '按总分排名，同分并列'}}</view><view class="result-buttons"><button wx:if="{{!final}}" class="primary" bindtap="nextTeam">交给下一队 ›</button><button wx:else class="primary" disabled="{{adPending}}" loading="{{adPending}}" bindtap="again">再来一局</button><button class="secondary" disabled="{{adPending}}" bindtap="settings">调整设置</button></view></view>
+   <view class="card details-card">
+    <view class="detail-tabs"><button wx:if="{{final && grouped}}" class="{{detailTab === 'ranking' ? 'selected' : ''}}" data-tab="ranking" bindtap="detailTab">排行榜</button><button wx:if="{{final && grouped}}" class="{{detailTab === 'rounds' ? 'selected' : ''}}" data-tab="rounds" bindtap="detailTab">各轮得分</button><button class="{{detailTab === 'words' ? 'selected' : ''}}" data-tab="words" bindtap="detailTab">本轮词语</button></view>
+    <view class="detail-body"><view wx:if="{{!detailRows.length}}" class="minor empty-detail">本轮还没有作答，下次再试试吧</view><view wx:for="{{detailRows}}" wx:key="key" class="detail-row"><text class="detail-word">{{item.title}}</text><text class="{{item.skipped ? 'skip-label' : 'correct-label'}}">{{item.value}}</text></view></view>
+    <view class="pagination"><button disabled="{{detailPage === 0}}" data-delta="-1" bindtap="detailPage">‹ 上一页</button><text>{{detailPage + 1}} / {{detailPages}}</text><button disabled="{{detailPage + 1 >= detailPages}}" data-delta="1" bindtap="detailPage">下一页 ›</button></view>
+   </view>
+  </view>
+ </view>
+</view>

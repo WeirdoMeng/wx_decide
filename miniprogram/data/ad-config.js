@@ -19,18 +19,21 @@ module.exports = {
     'adunit-0bdc81084d977774'
   ],
   triggers: {
-    save: { minActions: 1, probability: 0.50 },
-    truth: { minActions: 3, probability: 0.20 },
-    wheel: { minActions: 3, probability: 0.20 },
-    coin: { minActions: 3, probability: 0.20 },
-    passBalloon: { minActions: 3, probability: 0.20 },
-    numberBomb: { minActions: 3, probability: 0.20 },
-    sharkTeeth: { minActions: 3, probability: 0.20 },
-    diceShake: { minActions: 3, probability: 0.20 },
-    diceClose: { minActions: 3, probability: 0.20 },
-    diceCount: { minActions: 3, probability: 0.20 },
-    diceOpen: { minActions: 3, probability: 0.20 },
-    billiards: { minActions: 3, probability: 0.20 }
+    save: { minActions: 1, probability: 0.30 },
+    truth: { minActions: 3, probability: 0.30 },
+    wheel: { minActions: 3, probability: 0.30 },
+    coin: { minActions: 3, probability: 0.30 },
+    passBalloon: { minActions: 3, probability: 0.30 },
+    numberBomb: { minActions: 3, probability: 0.30 },
+    sharkTeeth: { minActions: 3, probability: 0.30 },
+    headsReplay: { minActions: 3, probability: 0.30 },
+    charadesReplay: { minActions: 3, probability: 0.30 },
+    timingReplay: { minActions: 3, probability: 0.30 },
+    diceShake: { minActions: 3, probability: 0.30 },
+    diceClose: { minActions: 3, probability: 0.30 },
+    diceCount: { minActions: 3, probability: 0.30 },
+    diceOpen: { minActions: 3, probability: 0.30 },
+    billiards: { minActions: 3, probability: 0.30 }
   },
   // 普通视频暂不启用；它不属于观看后发奖励的激励视频。
   video: [],

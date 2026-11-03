@@ -23,6 +23,13 @@
       "pages": [
         "pages/play/index"
       ]
+    },
+    {
+      "root": "partyplay",
+      "pages": [
+        "pages/words/index",
+        "pages/timing/index"
+      ]
     }
   ],
   "window": {

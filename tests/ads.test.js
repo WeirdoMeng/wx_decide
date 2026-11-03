@@ -162,11 +162,11 @@ test('激励视频在未加载、加载错误或超时时绝不发完成奖励',
     ad.handlers.load();ad.handlers.close({isEnded:true});assert.deepEqual(results,['error']);assert.equal(ad.shows,0);
   }
 });
-test('保存50%随机，全部11个插屏入口从本次第3次起20%，前2次不触发',()=>{
- assert.equal(production.triggers.save.probability,.5);assert.equal(production.policy.pityActions,25);
+test('保存30%随机，全部14个插屏入口从本次第3次起30%，前2次不触发',()=>{
+ assert.equal(production.triggers.save.probability,.30);assert.equal(production.policy.pityActions,25);
  const f=fixture();f.config.triggers=production.triggers;f.api.createRewardedVideoAd=f.api.createInterstitialAd;
- for(const key of ['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount']){
-  assert.equal(production.triggers[key].probability,.20);
+ for(const key of ['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount','headsReplay','charadesReplay','timingReplay']){
+  assert.equal(production.triggers[key].probability,.30);
   const manager=createManager({...f.options,random:()=>.1});
   assert.equal(manager.shouldOffer(key),false);assert.equal(manager.shouldOffer(key),false);assert.equal(manager.shouldOffer(key),true);
  }
@@ -187,7 +187,7 @@ function pityFixture(saved) {
  const options={...f.options,random:()=>.999,log:(type,detail)=>logs.push({type,detail})};
  return {...f,options,logs,manager:createManager(options)};
 }
-const operationEntries=['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount'];
+const operationEntries=['truth','wheel','coin','passBalloon','numberBomb','sharkTeeth','billiards','diceShake','diceOpen','diceClose','diceCount','headsReplay','charadesReplay','timingReplay'];
 test('全部插屏入口共用25次兜底，连续随机落空时第25次仍创建一次插屏',async()=>{
   const f=pityFixture();
   for(let i=0;i<24;i++)assert.equal(f.manager.shouldOffer(operationEntries[i%operationEntries.length]),false);
@@ -241,11 +241,11 @@ test('跨玩法累计25次，重新打开从头计数，旧版操作缓存不跳
  const legacy=pityFixture({'ads:v1':{opActions:100,engagement:{truth:100,wheel:100,save:100}}});
  assert.equal(legacy.manager.shouldOffer('coin'),false);assert.equal(legacy.manager.shouldOffer('wheel'),false);
 });
-test('前两次保护按本次打开共用，第3次20%边界准确，成功后不重复前两次保护',async()=>{
- const f=fixture();f.config.triggers=production.triggers;let roll=.20;
+test('前两次保护按本次打开共用，第3次30%边界准确，成功后不重复前两次保护',async()=>{
+ const f=fixture();f.config.triggers=production.triggers;let roll=.30;
  const manager=createManager({...f.options,random:()=>roll});
  assert.equal(manager.shouldOffer('wheel'),false);assert.equal(manager.shouldOffer('coin'),false);
- assert.equal(manager.shouldOffer('truth'),false);roll=.199999;
+ assert.equal(manager.shouldOffer('truth'),false);roll=.299999;
  assert.equal(manager.shouldOffer('sharkTeeth'),true);
  const controller=manager.controller(()=>true);controller.play(()=>{},{placement:'sharkTeeth'});
  f.instances[0].handlers.load();await flush();f.instances[0].handlers.close();
